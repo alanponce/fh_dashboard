@@ -71,9 +71,9 @@ with tab1:
             filters_text.append("Age: " + age_filter )
 
         #Filter to platform
-        by_platform = st.checkbox('Plataforma')
+        by_platform = st.checkbox('Platform')
         if by_platform:
-            platform_filter = st.selectbox( "Plataforma",("iOS", "Android"))
+            platform_filter = st.selectbox( "Platform",("iOS", "Android"))
             #filter df
             df_filter = df[df['Mobile_Device'] == platform_filter]
             filters_text.append("Mobile_Device: " + platform_filter )
