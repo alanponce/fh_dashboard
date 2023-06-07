@@ -120,7 +120,9 @@ with tab2:
 
     fig2 = plot_metrics(rolling_7,  str(rolling_quantity_metric) +' days')
 
-    st.plotly_chart(
+    fig.update_layout(height=800)
+    
+     st.plotly_chart(
         fig2,
         theme="streamlit", height=800
     )
