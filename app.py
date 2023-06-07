@@ -96,7 +96,7 @@ with tab1:
     #plot in streamlit
     st.plotly_chart(
         fig,
-        theme="streamlit",
+        theme="streamlit", use_container_width=True, height=800
     )
 
 
