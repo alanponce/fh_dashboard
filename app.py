@@ -122,7 +122,7 @@ with tab2:
 
     fig.update_layout(height=800)
     
-     st.plotly_chart(
+    st.plotly_chart(
         fig2,
         theme="streamlit", height=800
     )
