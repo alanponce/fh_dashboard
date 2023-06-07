@@ -124,7 +124,7 @@ with tab2:
     
     st.plotly_chart(
         fig2,
-        theme="streamlit", height=800
+        theme="streamlit", use_container_width=True, height=800
     )
 
  
