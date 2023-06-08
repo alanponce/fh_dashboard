@@ -57,7 +57,7 @@ gender_list = df[df.UserGender.notna()].UserGender.unique()
 maritalstatus_list = df[df.UserMaritalStatus.notna()].UserMaritalStatus.unique()
 
 #UserEmploymentStatus list for the selectbox
-employmentstatus_list = df[df.UserEmploymentStatus.notna()].UserEmploymentStatus.unique()
+#employmentstatus_list = df[df.UserEmploymentStatus.notna()].UserEmploymentStatus.unique()
 
 #contenedor
 # Using "with" notation
