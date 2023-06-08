@@ -150,10 +150,4 @@ def get_rolling_values(engagement_list, lookback):
   return df_rolling
 
 
-# Create a download button for the filtered data CSV file
-def download_filtered_data(df):
-    csv = df.head(10).to_csv(index=False)
-    b64 = base64.b64encode(csv.encode()).decode()
-    href = f'<a href="data:file/csv;base64,{b64}" download="filtered_data.csv">Download Filtered Data</a>'
-    return href
 
