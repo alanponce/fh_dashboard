@@ -180,8 +180,9 @@ with st.sidebar:
         st.subheader("Filtered Data")
         st.dataframe(engagement_list.head(10)) 
 
-       # Add the download button to the UI
-        st.markdown(download_filtered_data(), unsafe_allow_html=True)
+          
+      # Add the download button to the UI
+        st.markdown(download_filtered_data(engagement_list), unsafe_allow_html=True)
           
 
          
