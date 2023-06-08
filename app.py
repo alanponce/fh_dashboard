@@ -145,8 +145,12 @@ with st.sidebar:
             fig, 
             theme="streamlit", use_container_width=True, height=800
         )
+          
+        # Show the first 10 records of the filtered DataFrame
+        #st.subheader("Filtered Data")
+        #st.dataframe(df_filter.head(10))
      
-        #st.table(engagement_list.head(15))
+        st.table(engagement_list.head(15))
      
     #The second plot
     with tab2:
@@ -170,4 +174,8 @@ with st.sidebar:
             theme="streamlit", use_container_width=True, height=800
         )
           
-        st.table(engagement_list.head(10))
+        #st.table(engagement_list.head(10))
+        
+        st.subheader("Filtered Data")
+        st.dataframe(engagement_list.head(10))
+         
