@@ -151,7 +151,7 @@ with st.sidebar:
         #st.subheader("Filtered Data")
         #st.dataframe(df_filter.head(10))
      
-        st.table(engagement_list.head(15))
+        st.table(engagement_list.tail(10))
      
     #The second plot
     with tab2:
@@ -178,7 +178,7 @@ with st.sidebar:
         #st.table(engagement_list.head(10))
         
         st.subheader("Filtered Data")
-        st.dataframe(engagement_list.head(10)) 
+        st.dataframe(engagement_list.tail(10)) 
 
           
 
