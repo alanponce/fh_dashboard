@@ -25,7 +25,7 @@ def plot_engagements_users(dataset, label):
       go.Scatter(x=list(data.index),
                 y=list(data.Unique_users),
                 name="Unique users",
-                line=dict(color="#33CFA5", dash="dash")))
+                line=dict(color="#ffA500", dash="dash")))
 
 
   # Set title
