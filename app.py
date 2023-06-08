@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import datetime as dt
+import base64
 #from functions.functions_data import get_engagement_list, get_global_daily, get_rolling, get_daily_users_list, get_rolling_values
 #from functions.functions_graphics import plot_engagements_users, plot_metrics, get_engagements_by_age
 #from functions.functions_graphics import get_metrics_by_age
@@ -181,5 +182,6 @@ with st.sidebar:
 
        # Add the download button to the UI
         st.markdown(download_filtered_data(), unsafe_allow_html=True)
+          
 
          
