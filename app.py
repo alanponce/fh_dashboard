@@ -124,7 +124,7 @@ with st.sidebar:
 
     #this data is used in both plots
     engagement_list = get_engagement_list(df = df_filter, lookback = int(lookback), from_date=pd.Timestamp(str(start_date)))
-    st.table(engagement_list.head(10))
+    
 
     #En el primer tab, show the first plot
     with tab1:
@@ -160,7 +160,8 @@ with st.sidebar:
             st.subheader("With filters")
             for f in filters_text:
                 st.write(f)
-               
+         
+        st.table(engagement_list.head(10))
         fig.update_layout(height=800)
         
         #plot in streamlit
