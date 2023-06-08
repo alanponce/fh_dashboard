@@ -180,7 +180,9 @@ with st.sidebar:
         #st.table(engagement_list.head(10))
         
         st.subheader("Filtered Data")
-        st.dataframe(engagement_list.tail(10)) 
+        st.dataframe(engagement_list[['UserId', 'EventDateTime', 'Language', 
+                                 'Age', 'UserState', 'Mobile_Device',
+                                'UserGender', 'UserMaritalStatus']].tail(10)) 
 
           
 
