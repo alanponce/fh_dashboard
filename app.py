@@ -151,9 +151,9 @@ with st.sidebar:
         #st.subheader("Filtered Data")
         #st.dataframe(df_filter.head(10))
      
-        st.table(engagement_list['UserId', 'EventDateTime', 'Language', 
+        st.table(engagement_list[['UserId', 'EventDateTime', 'Language', 
                                  'Age', 'UserState', 'Mobile_Device',
-                                'UserGender', 'UserMaritalStatus'].tail(10))
+                                'UserGender', 'UserMaritalStatus']].tail(10))
      
     #The second plot
     with tab2:
