@@ -119,6 +119,8 @@ with st.sidebar:
         #filter df
     #    df_filter = df_filter[df_filter['UserEmploymentStatus'] == employmentStatus_filter]
     #    filters_text.append("Employment status: " + employmentStatus_filter) 
+     
+     st.table(engagement_list.head(10))
 
     #this data is used in both plots
     engagement_list = get_engagement_list(df = df_filter, lookback = int(lookback), from_date=pd.Timestamp(str(start_date)))
