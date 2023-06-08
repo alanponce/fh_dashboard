@@ -135,7 +135,7 @@ with st.sidebar:
         #plot 
         fig = plot_engagements_users(rolled, str(rolling_quantity) +' days')
 
-        #show acvite filters
+        #show active filters
         if filters_text:
             st.subheader("With filters")
             for f in filters_text:
