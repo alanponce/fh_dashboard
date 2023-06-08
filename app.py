@@ -142,7 +142,9 @@ with st.sidebar:
             fig, 
             theme="streamlit", use_container_width=True, height=800
         )
-
+     
+     st.table(engagement_list)
+     
     #The second plot
     with tab2:
         #data for the plot
