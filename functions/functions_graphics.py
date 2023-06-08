@@ -62,7 +62,7 @@ def plot_metrics(dataset, label):
       go.Scatter(x=list(df.index),
                 y=list(df.Quantile_25),
                 name="quantile 25",
-                line=dict(color="#6a6af0", dash="dash")))
+                line=dict(color="#ffA500", dash="dash")))
   # Set title
   fig.update_layout(title_text= label)
   
