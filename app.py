@@ -19,18 +19,25 @@ st.set_page_config(
 def load_data():
     #read the data
     path_to_csv = "data/data_20230606.csv"
-
     df = pd.read_csv(path_to_csv)
     #change data type
     df['EventDateTime'] = pd.to_datetime(df['EventDateTime'], infer_datetime_format=True, format='mixed')
-    return df
 
-#tabs
+    #Abreviaturas de los estados de USA
+    df_states = pd.read_csv("data/abreviaturas_USA.csv")
+
+    return df, df_states
+
+#load data and create a copy
+df, df_states = load_data()
+df_filter = df.copy()
+
+#tabs 
 tab1, tab2 = st.tabs(["Engagements users", "Engagements Metrics"])
 
 #bins of age
 age_bins = {
-   "18-29" : (18,29),
+   "18-29" : (18,29), 
    "30-39" : (30,39),
    "40-49" : (40,49),
    "50-59" : (50,59),
@@ -38,93 +45,119 @@ age_bins = {
    "70-79" : (70,79)
 }
 
-#load data and create a copy
-df = load_data()
-df_filter = df.copy()
+#diccionario, abreviatura : state
+#'Alabama' : 'AL'
+df_states = df_states[df_states["Abreviatura"].isin(df.UserState.unique())]
+diccionario_abreviaturas = pd.Series(df_states.Abreviatura.values,index=df_states.State).to_dict()
 
-#En el primer tab
-with tab1:
-    #contenedor
-    with st.container():
-        #tres columnas
-        col1, col2,col3 = st.columns((2, 2,2))
-        with col1:
-            #year-month-day
-            start_date = st.date_input(label='From date', key="sd1")
-        with col2:
-            #lookback
-            lookback = st.number_input(label='Lookback',step=1, value = 1358, key="lb1")
-        with col3:
-            #rolling quantity
-            rolling_quantity = st.number_input(label='Rolling Quantity',step=1, value = 7, key="rq1")
+#gender list for the selectbox
+gender_list = df[df.UserGender.notna()].UserGender.unique()
 
-    #filtros adicionales
-    with st.container():
-        st.text("Filter")
-        filters_text = []
-        #Filter to age
-        by_age = st.checkbox('Age')
-        if by_age:
-            age_filter = st.selectbox( "Bins",("18-29", "30-39","40-49","50-59","60-69","70-79"))
-            #filter df
-            df_filter = df_filter[df_filter['Age'].between( age_bins[age_filter][0], age_bins[age_filter][1] )]
-            filters_text.append("Age: " + age_filter )
+#UserMaritalStatus list for the selectbox
+maritalstatus_list = df[df.UserMaritalStatus.notna()].UserMaritalStatus.unique()
 
-        #Filter to platform
-        by_platform = st.checkbox('Platform')
-        if by_platform:
-            platform_filter = st.selectbox( "Platform",("iOS", "Android"))
-            #filter df
-            df_filter = df[df['Mobile_Device'] == platform_filter]
-            filters_text.append("Mobile_Device: " + platform_filter )
+#UserEmploymentStatus list for the selectbox
+employmentstatus_list = df[df.UserEmploymentStatus.notna()].UserEmploymentStatus.unique()
 
-
-    #data for the plot
-    engagement_list = get_engagement_list(df = df_filter, lookback = int(lookback), from_date=pd.Timestamp(str(start_date)))
-    global_metrics = get_global_daily(engagement_list)
-    rolled = get_rolling(global_metrics,int(rolling_quantity), engagement_list)
-    #plot
-    fig = plot_engagements_users(rolled, str(rolling_quantity) +' days')
-
-    st.subheader("Engagement ")
-
-    if filters_text:
-        st.write("with filters")
-        for f in filters_text:
-            st.write(f)
-
-    #plot in streamlit
-    st.plotly_chart(
-        fig,
-        theme="streamlit", use_container_width=True, height=800
-    )
-
-
-with tab2:
-    #contenedor
-    with st.container():
-        col1, col2,col3 = st.columns((2, 2,2))
-        with col1:
-            #year-month-day
-            start_date_metric = st.date_input(label='From date', key="sd2")
-        with col2:
-            #
-            lookback_metric = st.number_input(label='Lookback',step=1, value = 1358, key="lb2")
-        with col3:
-            #
-            rolling_quantity_metric = st.number_input(label='Rolling Quantity',step=1, value = 7, key="rq2")
-
-    engagement_list = get_engagement_list(df = df, lookback = int(lookback_metric), from_date=pd.Timestamp(str(start_date_metric)))
-
-    rolling_7 = get_rolling_values(engagement_list, rolling_quantity_metric)
-
-    fig2 = plot_metrics(rolling_7,  str(rolling_quantity_metric) +' days')
-
-    fig.update_layout(height=800)
+#contenedor
+# Using "with" notation
+with st.sidebar:
+    #year-month-day
+    start_date = st.date_input(label='From date', key="sd1")
+    #lookback
+    lookback = st.number_input(label='Lookback',step=1, value = 1358, key="lb1")
+    #rolling quantity
+    rolling_quantity = st.number_input(label='Rolling Quantity',step=1, value = 7, key="rq1")
     
-    st.plotly_chart(
-        fig2,
-        theme="streamlit", use_container_width=True, height=800
-    )
+    #filtros adicionales 
+    st.text("Filter")
+    filters_text = []
+    #Filter to age
+    by_age = st.checkbox('Age')
+    if by_age:
+        age_filter = st.selectbox( "Bins",("18-29", "30-39","40-49","50-59","60-69","70-79"))
+        #filter df
+        df_filter = df_filter[df_filter['Age'].between( age_bins[age_filter][0], age_bins[age_filter][1] )]
+        filters_text.append("Age: " + age_filter ) 
+    #Filter to platform     
+    by_platform = st.checkbox('Platform')
+    if by_platform:
+        platform_filter = st.selectbox( "Platform",("iOS", "Android"))
+        #filter df
+        df_filter = df_filter[df_filter['Mobile_Device'] == platform_filter]
+        filters_text.append("Mobile_Device: " + platform_filter ) 
 
- 
+    #Filter to state     
+    by_state = st.checkbox('State')
+    if by_state:
+        #Use the key of the diccionary, i mean, the name of the state
+        state_filter = st.selectbox( "State", diccionario_abreviaturas.keys())
+        #filter df
+        df_filter = df_filter[df_filter['UserState'] == diccionario_abreviaturas[state_filter]]
+        filters_text.append("State: " + state_filter) 
+
+    #Filter to gender     
+    by_gender = st.checkbox('Gender')
+    if by_gender:
+        gender_filter = st.selectbox( "Gender", gender_list)
+        #filter df
+        df_filter = df_filter[df_filter['UserGender'] == gender_filter]
+        filters_text.append("Gender: " + gender_filter) 
+
+    #Filter to marital status     
+    by_maritalStatus = st.checkbox('Marital status')
+    if by_maritalStatus:
+        maritalStatus_filter = st.selectbox( "Marital status", maritalstatus_list)
+        #filter df
+        df_filter = df_filter[df_filter['UserMaritalStatus'] == maritalStatus_filter]
+        filters_text.append("Marital Status: " + maritalStatus_filter) 
+
+    #Filter to employmentStatus
+    #by_employmentStatus = st.checkbox('Employment status')
+    #if by_employmentStatus:
+    #    employmentStatus_filter = st.selectbox( "Employment status", employmentstatus_list)
+        #filter df
+    #    df_filter = df_filter[df_filter['UserEmploymentStatus'] == employmentStatus_filter]
+    #    filters_text.append("Employment status: " + employmentStatus_filter) 
+
+    #this data is used in both plots
+    engagement_list = get_engagement_list(df = df_filter, lookback = int(lookback), from_date=pd.Timestamp(str(start_date)))
+
+    #En el primer tab, show the first plot
+    with tab1:
+        #data for the plot
+        global_metrics = get_global_daily(engagement_list)
+        rolled = get_rolling(global_metrics,int(rolling_quantity), engagement_list)
+        #plot 
+        fig = plot_engagements_users(rolled, str(rolling_quantity) +' days')
+
+        #show acvite filters
+        if filters_text:
+            st.subheader("With filters")
+            for f in filters_text:
+                st.write(f)
+
+        #plot in streamlit
+        st.plotly_chart(
+            fig, 
+            theme="streamlit",  
+        )
+
+    #The second plot
+    with tab2:
+        #data for the plot
+        rolling_7 = get_rolling_values(engagement_list, rolling_quantity)
+        #plot 
+        fig2 = plot_metrics(rolling_7,  str(rolling_quantity) +' days')
+
+        #show active filters
+        if filters_text:
+            st.subheader("With filters")
+            for f in filters_text:
+                st.write(f)
+
+        #plot in streamlit
+        st.plotly_chart(
+            fig2, 
+            theme="streamlit",  
+        )
