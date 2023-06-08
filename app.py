@@ -146,7 +146,7 @@ with st.sidebar:
             theme="streamlit", use_container_width=True, height=800
         )
      
-        st.table(engagement_list.head(15))
+        #st.table(engagement_list.head(15))
      
     #The second plot
     with tab2:
@@ -161,7 +161,7 @@ with st.sidebar:
             for f in filters_text:
                 st.write(f)
          
-        st.table(engagement_list.head(10))
+        
         fig.update_layout(height=800)
         
         #plot in streamlit
@@ -169,3 +169,5 @@ with st.sidebar:
             fig2, 
             theme="streamlit", use_container_width=True, height=800
         )
+          
+        st.table(engagement_list.head(10))
