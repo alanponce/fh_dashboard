@@ -155,9 +155,11 @@ with st.sidebar:
             st.subheader("With filters")
             for f in filters_text:
                 st.write(f)
-
+               
+        fig.update_layout(height=800)
+        
         #plot in streamlit
         st.plotly_chart(
             fig2, 
-            theme="streamlit",  
+            theme="streamlit", use_container_width=True, height=800
         )
