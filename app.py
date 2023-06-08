@@ -3,9 +3,8 @@ import pandas as pd
 import numpy as np
 import datetime as dt
 import base64
-#from functions.functions_data import get_engagement_list, get_global_daily, get_rolling, get_daily_users_list, get_rolling_values
-#from functions.functions_graphics import plot_engagements_users, plot_metrics, get_engagements_by_age
-#from functions.functions_graphics import get_metrics_by_age
+import math
+
 from functions.functions_data import get_engagement_list, get_global_daily, get_rolling, get_rolling_values
 from functions.functions_graphics import plot_engagements_users, plot_metrics
 
@@ -28,6 +27,11 @@ def load_data():
     df_states = pd.read_csv("data/abreviaturas_USA.csv")
 
     return df, df_states
+
+@st.cache_data()
+def convert_df(df):
+    return df.to_csv().encode('utf-8')
+
 
 #load data and create a copy
 df, df_states = load_data()
@@ -60,68 +64,79 @@ maritalstatus_list = df[df.UserMaritalStatus.notna()].UserMaritalStatus.unique()
 #UserEmploymentStatus list for the selectbox
 #employmentstatus_list = df[df.UserEmploymentStatus.notna()].UserEmploymentStatus.unique()
 
+#paginacion del df
+def paginate_dataframe(dataframe, page_size = 10, page_num = 1):
+    #cuantos resultados por pagina 
+    page_size = page_size
+
+    offset = page_size*(page_num-1)
+
+    return dataframe[offset:offset + page_size]
+
 #contenedor
 # Using "with" notation
 with st.sidebar:
-    #year-month-day
-    start_date = st.date_input(label='From date', key="sd1")
-    #lookback
-    lookback = st.number_input(label='Lookback',step=1, value = 1358, key="lb1")
-    #rolling quantity
-    rolling_quantity = st.number_input(label='Rolling Quantity',step=1, value = 7, key="rq1")
-    
-    #filtros adicionales 
-    st.text("Filter")
-    filters_text = []
-    #Filter to age
-    by_age = st.checkbox('Age')
-    if by_age:
-        age_filter = st.selectbox( "Bins",("18-29", "30-39","40-49","50-59","60-69","70-79"))
-        #filter df
-        df_filter = df_filter[df_filter['Age'].between( age_bins[age_filter][0], age_bins[age_filter][1] )]
-        filters_text.append("Age: " + age_filter ) 
-    #Filter to platform     
-    by_platform = st.checkbox('Platform')
-    if by_platform:
-        platform_filter = st.selectbox( "Platform",("iOS", "Android"))
-        #filter df
-        df_filter = df_filter[df_filter['Mobile_Device'] == platform_filter]
-        filters_text.append("Mobile_Device: " + platform_filter ) 
+    with st.form("form"):
+        #year-month-day
+        start_date = st.date_input(label='From date', key="sd1")
+        #lookback
+        lookback = st.number_input(label='Lookback',step=1, value = 1358, key="lb1")
+        #rolling quantity
+        rolling_quantity = st.number_input(label='Rolling Quantity',step=1, value = 7, key="rq1")
+        
+        #filtros adicionales 
+        st.text("Filter")
+        filters_text = []
+        #Filter to age
 
-    #Filter to state     
-    by_state = st.checkbox('State')
-    if by_state:
+        age_filter = st.selectbox( "Age Bins", ("All", "18-29", "30-39","40-49","50-59","60-69","70-79"))
+        #filter df
+        if age_filter != "All":
+            df_filter = df_filter[df_filter['Age'].between( age_bins[age_filter][0], age_bins[age_filter][1] )]
+            filters_text.append("Age: " + age_filter ) 
+        #Filter to platform     
+
+        platform_filter = st.selectbox( "Platform",("All", "iOS", "Android"))
+        #filter df
+        if platform_filter != "All":
+            df_filter = df_filter[df_filter['Mobile_Device'] == platform_filter]
+            filters_text.append("Mobile_Device: " + platform_filter ) 
+
+        #Filter to state     
+
         #Use the key of the diccionary, i mean, the name of the state
-        state_filter = st.selectbox( "State", diccionario_abreviaturas.keys())
+        state_filter = st.selectbox( "State",["All",]  + list(diccionario_abreviaturas.keys()))
         #filter df
-        df_filter = df_filter[df_filter['UserState'] == diccionario_abreviaturas[state_filter]]
-        filters_text.append("State: " + state_filter) 
+        if state_filter != "All":
+            df_filter = df_filter[df_filter['UserState'] == diccionario_abreviaturas[state_filter]]
+            filters_text.append("State: " + state_filter) 
 
-    #Filter to gender     
-    by_gender = st.checkbox('Gender')
-    if by_gender:
-        gender_filter = st.selectbox( "Gender", gender_list)
-        #filter df
-        df_filter = df_filter[df_filter['UserGender'] == gender_filter]
-        filters_text.append("Gender: " + gender_filter) 
+        #Filter to gender     
 
-    #Filter to marital status     
-    by_maritalStatus = st.checkbox('Marital status')
-    if by_maritalStatus:
-        maritalStatus_filter = st.selectbox( "Marital status", maritalstatus_list)
+        gender_filter = st.selectbox( "Gender", ["All"]  + list(gender_list))
         #filter df
-        df_filter = df_filter[df_filter['UserMaritalStatus'] == maritalStatus_filter]
-        filters_text.append("Marital Status: " + maritalStatus_filter) 
+        if gender_filter != "All":
+            df_filter = df_filter[df_filter['UserGender'] == gender_filter]
+            filters_text.append("Gender: " + gender_filter) 
 
-    #Filter to employmentStatus
-    #by_employmentStatus = st.checkbox('Employment status')
-    #if by_employmentStatus:
-    #    employmentStatus_filter = st.selectbox( "Employment status", employmentstatus_list)
-        #filter df
-    #    df_filter = df_filter[df_filter['UserEmploymentStatus'] == employmentStatus_filter]
-    #    filters_text.append("Employment status: " + employmentStatus_filter) 
-     
-    
+        #Filter to marital status     
+
+        maritalStatus_filter = st.selectbox( "Marital status", ["All"]  + list(maritalstatus_list) )
+        if gender_filter != "All":
+            #filter df
+            df_filter = df_filter[df_filter['UserMaritalStatus'] == maritalStatus_filter]
+            filters_text.append("Marital Status: " + maritalStatus_filter) 
+
+        #Filter to employmentStatus
+        #by_employmentStatus = st.checkbox('Employment status')
+        #if by_employmentStatus:
+        #    employmentStatus_filter = st.selectbox( "Employment status", employmentstatus_list)
+            #filter df
+        #    df_filter = df_filter[df_filter['UserEmploymentStatus'] == employmentStatus_filter]
+        #    filters_text.append("Employment status: " + employmentStatus_filter) 
+        # Every form must have a submit button.
+        submitted = st.form_submit_button("Submit")
+
 
     #this data is used in both plots
     engagement_list = get_engagement_list(df = df_filter, lookback = int(lookback), from_date=pd.Timestamp(str(start_date)))
@@ -151,10 +166,20 @@ with st.sidebar:
         #st.subheader("Filtered Data")
         #st.dataframe(df_filter.head(10))
      
-        st.table(engagement_list[['UserId', 'EventDateTime', 'Language', 
+        number = st.number_input('Pagina', value=1,min_value=1, max_value=math.ceil(len(df_filter.index) / 10), step=1)
+
+        st.table(paginate_dataframe(df_filter[['UserId', 'EventDateTime', 'Language', 
                                  'Age', 'UserState', 'Mobile_Device',
-                                'UserGender', 'UserMaritalStatus']].tail(10))
-     
+                                'UserGender', 'UserMaritalStatus']], 10, number))
+ 
+        csv = convert_df(df_filter)
+
+        st.download_button(
+            label="Download data as CSV",
+            data=csv,
+            file_name='df_filter.csv',
+            mime='text/csv',
+        )
     #The second plot
     with tab2:
         #data for the plot
@@ -180,10 +205,9 @@ with st.sidebar:
         #st.table(engagement_list.head(10))
         
         st.subheader("Filtered Data")
-        st.dataframe(engagement_list[['UserId', 'EventDateTime', 'Language', 
+        number = st.number_input('Pagina', value=1,min_value=1, max_value=math.ceil(len(df_filter.index) / 10), step=1, key = "paginacion_em")
+
+        st.table(paginate_dataframe(df_filter[['UserId', 'EventDateTime', 'Language', 
                                  'Age', 'UserState', 'Mobile_Device',
-                                'UserGender', 'UserMaritalStatus']].tail(10)) 
-
-          
-
-         
+                                'UserGender', 'UserMaritalStatus']], 10, number))
+ 
