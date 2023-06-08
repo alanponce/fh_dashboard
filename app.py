@@ -5,9 +5,9 @@ import datetime as dt
 import base64
 import math
 
-from functions.functions_data import get_engagement_list, get_global_daily, get_rolling, get_rolling_values
+from functions.functions_data import get_global_daily, get_rolling, get_rolling_values
 from functions.functions_graphics import plot_engagements_users, plot_metrics
-
+from functions.functions_data import get_engagement_list_v2
 #Set title, icon, and layout
 st.set_page_config(
      page_title="FinHabits",
@@ -61,9 +61,8 @@ gender_list = df[df.UserGender.notna()].UserGender.unique()
 #UserMaritalStatus list for the selectbox
 maritalstatus_list = df[df.UserMaritalStatus.notna()].UserMaritalStatus.unique()
 
-#UserEmploymentStatus list for the selectbox
-#employmentstatus_list = df[df.UserEmploymentStatus.notna()].UserEmploymentStatus.unique()
-
+max_date = pd.to_datetime(df.EventDateTime.max())
+min_date = pd.to_datetime(df.EventDateTime.min())
 #paginacion del df
 def paginate_dataframe(dataframe, page_size = 10, page_num = 1):
     #cuantos resultados por pagina 
@@ -78,24 +77,21 @@ def paginate_dataframe(dataframe, page_size = 10, page_num = 1):
 with st.sidebar:
     with st.form("form"):
         #year-month-day
-        start_date = st.date_input(label='From date', key="sd1")
-        #lookback
-        lookback = st.number_input(label='Lookback',step=1, value = 1358, key="lb1")
+        start_date = st.date_input(label='Start date', key="sd1", value = dt.date(min_date.year, min_date.month,min_date.day))
+        #year-month-day
+        end_date = st.date_input(label='End date', key="en1", value = dt.date(max_date.year, max_date.month,max_date.day))
         #rolling quantity
         rolling_quantity = st.number_input(label='Rolling Quantity',step=1, value = 7, key="rq1")
-        
         #filtros adicionales 
         st.text("Filter")
         filters_text = []
         #Filter to age
-
         age_filter = st.selectbox( "Age Bins", ("All", "18-29", "30-39","40-49","50-59","60-69","70-79"))
         #filter df
         if age_filter != "All":
             df_filter = df_filter[df_filter['Age'].between( age_bins[age_filter][0], age_bins[age_filter][1] )]
             filters_text.append("Age: " + age_filter ) 
         #Filter to platform     
-
         platform_filter = st.selectbox( "Platform",("All", "iOS", "Android"))
         #filter df
         if platform_filter != "All":
@@ -103,7 +99,6 @@ with st.sidebar:
             filters_text.append("Mobile_Device: " + platform_filter ) 
 
         #Filter to state     
-
         #Use the key of the diccionary, i mean, the name of the state
         state_filter = st.selectbox( "State",["All",]  + list(diccionario_abreviaturas.keys()))
         #filter df
@@ -112,35 +107,25 @@ with st.sidebar:
             filters_text.append("State: " + state_filter) 
 
         #Filter to gender     
-
-        gender_filter = st.selectbox( "Gender", ["All"]  + list(gender_list))
+        gender_filter = st.selectbox( "Gender", ["All",]  + list(gender_list))
         #filter df
         if gender_filter != "All":
             df_filter = df_filter[df_filter['UserGender'] == gender_filter]
             filters_text.append("Gender: " + gender_filter) 
 
         #Filter to marital status     
-
-        maritalStatus_filter = st.selectbox( "Marital status", ["All"]  + list(maritalstatus_list) )
-        if gender_filter != "All":
+        maritalStatus_filter = st.selectbox( "Marital status", ["All",]  + list(maritalstatus_list) )
+        if maritalStatus_filter != "All":
             #filter df
             df_filter = df_filter[df_filter['UserMaritalStatus'] == maritalStatus_filter]
             filters_text.append("Marital Status: " + maritalStatus_filter) 
 
-        #Filter to employmentStatus
-        #by_employmentStatus = st.checkbox('Employment status')
-        #if by_employmentStatus:
-        #    employmentStatus_filter = st.selectbox( "Employment status", employmentstatus_list)
-            #filter df
-        #    df_filter = df_filter[df_filter['UserEmploymentStatus'] == employmentStatus_filter]
-        #    filters_text.append("Employment status: " + employmentStatus_filter) 
         # Every form must have a submit button.
         submitted = st.form_submit_button("Submit")
+ 
+        #this data is used in both plots
+        engagement_list = get_engagement_list_v2(df = df_filter, start_date= str(start_date), end_data= str(end_date)  )
 
-
-    #this data is used in both plots
-    engagement_list = get_engagement_list(df = df_filter, lookback = int(lookback), from_date=pd.Timestamp(str(start_date)))
-    
 
     #En el primer tab, show the first plot
     with tab1:
@@ -156,6 +141,9 @@ with st.sidebar:
             for f in filters_text:
                 st.write(f)
 
+
+        #fig.update_layout(height=800)
+
         #plot in streamlit
         st.plotly_chart(
             fig, 
@@ -163,39 +151,30 @@ with st.sidebar:
         )
           
         # Show the first 10 records of the filtered DataFrame
-        #st.subheader("Filtered Data")
-        #st.dataframe(df_filter.head(10))
-     
-        number = st.number_input('Pagina', value=1,min_value=1, max_value=math.ceil(len(df_filter.index) / 10), step=1)
+        st.subheader("Filtered Data")
 
-        st.table(paginate_dataframe(df_filter[['UserId', 'EventDateTime', 'Language', 
+        #paginacion 
+        number = st.number_input('Pagina', value=1,min_value=1, max_value=math.ceil(len(engagement_list.index) / 10), step=1)
+        #pag 1 de n paginas 
+        st.write("Pagina " + str(number) + " de " + str(math.ceil(len(engagement_list.index) / 10)))
+        #muestra la tabla 
+        st.table(paginate_dataframe(engagement_list[['UserId', 'EventDateTime', 'Language', 
                                  'Age', 'UserState', 'Mobile_Device',
                                 'UserGender', 'UserMaritalStatus']], 10, number))
- 
-        csv = convert_df(df_filter)
 
-        st.download_button(
-            label="Download data as CSV",
-            data=csv,
-            file_name='df_filter.csv',
-            mime='text/csv',
-        )
     #The second plot
     with tab2:
         #data for the plot
-        rolling_7 = get_rolling_values(engagement_list, rolling_quantity)
+        rolling = get_rolling_values(engagement_list, rolling_quantity)
         #plot 
-        fig2 = plot_metrics(rolling_7,  str(rolling_quantity) +' days')
+        fig2 = plot_metrics(rolling,  str(rolling_quantity) +' days')
 
         #show active filters
         if filters_text:
             st.subheader("With filters")
             for f in filters_text:
                 st.write(f)
-         
-        
-        fig.update_layout(height=800)
-        
+                 
         #plot in streamlit
         st.plotly_chart(
             fig2, 
@@ -205,9 +184,17 @@ with st.sidebar:
         #st.table(engagement_list.head(10))
         
         st.subheader("Filtered Data")
-        number = st.number_input('Pagina', value=1,min_value=1, max_value=math.ceil(len(df_filter.index) / 10), step=1, key = "paginacion_em")
+        number = st.number_input('Pagina', value=1,min_value=1, max_value=math.ceil(len(engagement_list.index) / 10), step=1, key = "paginacion_em")
 
-        st.table(paginate_dataframe(df_filter[['UserId', 'EventDateTime', 'Language', 
+        st.table(paginate_dataframe(engagement_list[['UserId', 'EventDateTime', 'Language', 
                                  'Age', 'UserState', 'Mobile_Device',
                                 'UserGender', 'UserMaritalStatus']], 10, number))
  
+csv = convert_df(engagement_list)
+
+st.download_button(
+    label="Download data as CSV",
+    data=csv,
+    file_name='data.csv',
+    mime='text/csv',
+)

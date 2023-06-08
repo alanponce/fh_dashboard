@@ -31,28 +31,6 @@ def get_engagement_list(df, lookback = 1365, from_date = pd.Timestamp.today()):
   engagement_list['EventDateTime'] = pd.to_datetime(engagement_list['EventDateTime'].dt.normalize())
   return engagement_list
 
-def get_engagement_list_2(df, start_date , end_data):
-  """
-  df: DataFrame
-  start_date: date in 'YYYY-MM-DD'
-  end_data : date in 'YYYY-MM-DD'
-  return dataframe: engagement lists filtered between the date specified and the loockback.
-  """
-  ds = df.copy()
-  #Change data type
-  ds['EventDateTime'] = pd.to_datetime(ds['EventDateTime'])
-
-  # Apply the masks to the DataFrame
-  engagement_list = ds[ds["EventDateTime"].between(start_date, end_data )]
-  engagement_list = engagement_list.reset_index(drop=True)
-
-  #Convert times to midnight
-  engagement_list['EventDateTime'] = pd.to_datetime(engagement_list['EventDateTime'].dt.normalize())
-  return engagement_list
-
-
-
-
 def get_global_daily(engagement_list, UserId = []):
   """
   engagement_list: DataFrame
@@ -88,7 +66,6 @@ def get_rolling(dataset, rolling_quantity, engagement_list):
   dataset: DataFrame
   rolling_quantity: int
   engagement_list: Dataframe 
-
 
   return dataframe: Sum of Engagements and unique users in a period of time 
   """  
@@ -172,3 +149,21 @@ def get_rolling_values(engagement_list, lookback):
 
 
 
+def get_engagement_list_v2(df, start_date , end_data):
+  """
+  df: DataFrame
+  start_date: date in 'YYYY-MM-DD'
+  end_data : date in 'YYYY-MM-DD'
+  return dataframe: engagement lists filtered between two dates
+  """
+  ds = df.copy()
+  #Change data type
+  ds['EventDateTime'] = pd.to_datetime(ds['EventDateTime'])
+
+  #Filter the df
+  engagement_list = ds[ds["EventDateTime"].between(start_date, end_data )]
+  engagement_list = engagement_list.reset_index(drop=True)
+
+  #Convert times to midnight
+  engagement_list['EventDateTime'] = pd.to_datetime(engagement_list['EventDateTime'].dt.normalize())
+  return engagement_list
