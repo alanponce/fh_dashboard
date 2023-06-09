@@ -72,27 +72,65 @@ def paginate_dataframe(dataframe, page_size = 10, page_num = 1):
 
     return dataframe[offset:offset + page_size]
 
+#valores por default 
+if "sd" not in st.session_state:
+    st.session_state["min_date"] = dt.date(min_date.year, min_date.month,min_date.day)
+
+if "en" not in st.session_state:
+    st.session_state["max_date"] = dt.date(max_date.year, max_date.month,max_date.day)
+
+if "rq" not in st.session_state:
+    st.session_state["rolling"] = 7
+
+if "age" not in st.session_state:
+    st.session_state["index_age"] = 0
+
+if "platform" not in st.session_state:
+    st.session_state["index_platform"] = 0
+
+if "state" not in st.session_state:
+    st.session_state["index_state"] = 0
+
+if "gender" not in st.session_state:
+    st.session_state["index_gender"] = 0
+
+if "maritalstatus" not in st.session_state:
+    st.session_state["index_maritalstatus"] = 0
+
+
+#limpiar el form 
+def clear_form():
+    st.session_state["sd"] = dt.date(min_date.year, min_date.month,min_date.day)
+    st.session_state["en"] = dt.date(max_date.year, max_date.month,max_date.day)
+    st.session_state["rq"] = 7
+    st.session_state["age"] = "All"
+    st.session_state["platform"] = "All"
+    st.session_state["state"] = "All"
+    st.session_state["gender"] = "All"
+    st.session_state["maritalstatus"] = "All"
+
+    
 #contenedor
 # Using "with" notation
 with st.sidebar:
     with st.form("form"):
         #year-month-day
-        start_date = st.date_input(label='Start date', key="sd1", value = dt.date(min_date.year, min_date.month,min_date.day))
+        start_date = st.date_input(label='Start date', key="sd", value = st.session_state["min_date"])
         #year-month-day
-        end_date = st.date_input(label='End date', key="en1", value = dt.date(max_date.year, max_date.month,max_date.day))
+        end_date = st.date_input(label='End date', key="en", value = st.session_state["max_date"])
         #rolling quantity
-        rolling_quantity = st.number_input(label='Rolling Quantity',step=1, value = 7, key="rq1")
+        rolling_quantity = st.number_input(label='Rolling Quantity',step=1, key="rq", value = st.session_state["rolling"] )
         #filtros adicionales 
         st.text("Filter")
         filters_text = []
         #Filter to age
-        age_filter = st.selectbox( "Age Bins", ("All", "18-29", "30-39","40-49","50-59","60-69","70-79"))
+        age_filter = st.selectbox( "Age Bins", ("All", "18-29", "30-39","40-49","50-59","60-69","70-79"), key = "age", index = st.session_state["index_age"])
         #filter df
         if age_filter != "All":
             df_filter = df_filter[df_filter['Age'].between( age_bins[age_filter][0], age_bins[age_filter][1] )]
             filters_text.append("Age: " + age_filter ) 
         #Filter to platform     
-        platform_filter = st.selectbox( "Platform",("All", "iOS", "Android"))
+        platform_filter = st.selectbox( "Platform",("All", "iOS", "Android"), key = "platform", index = st.session_state["index_platform"])
         #filter df
         if platform_filter != "All":
             df_filter = df_filter[df_filter['Mobile_Device'] == platform_filter]
@@ -100,31 +138,35 @@ with st.sidebar:
 
         #Filter to state     
         #Use the key of the diccionary, i mean, the name of the state
-        state_filter = st.selectbox( "State",["All",]  + list(diccionario_abreviaturas.keys()))
+        state_filter = st.selectbox( "State",["All",]  + list(diccionario_abreviaturas.keys()), key = "state", index = st.session_state["index_state"])
         #filter df
         if state_filter != "All":
             df_filter = df_filter[df_filter['UserState'] == diccionario_abreviaturas[state_filter]]
             filters_text.append("State: " + state_filter) 
 
         #Filter to gender     
-        gender_filter = st.selectbox( "Gender", ["All",]  + list(gender_list))
+        gender_filter = st.selectbox( "Gender", ["All",]  + list(gender_list), key = "gender", index = st.session_state["index_gender"])
         #filter df
         if gender_filter != "All":
             df_filter = df_filter[df_filter['UserGender'] == gender_filter]
             filters_text.append("Gender: " + gender_filter) 
 
         #Filter to marital status     
-        maritalStatus_filter = st.selectbox( "Marital status", ["All",]  + list(maritalstatus_list) )
+        maritalStatus_filter = st.selectbox( "Marital status", ["All",]  + list(maritalstatus_list) , key = "maritalstatus", index = st.session_state["index_maritalstatus"])
         if maritalStatus_filter != "All":
             #filter df
             df_filter = df_filter[df_filter['UserMaritalStatus'] == maritalStatus_filter]
             filters_text.append("Marital Status: " + maritalStatus_filter) 
 
+        f1, f2 = st.columns([1, 1])
         # Every form must have a submit button.
-        submitted = st.form_submit_button("Submit")
- 
-        #this data is used in both plots
-        engagement_list = get_engagement_list_v2(df = df_filter, start_date= str(start_date), end_data= str(end_date)  )
+        with f1:
+            submitted = st.form_submit_button("Submit")
+        with f2:
+            clear = st.form_submit_button(label="Clear", on_click=clear_form)
+
+    #this data is used in both plots
+    engagement_list = get_engagement_list_v2(df = df_filter, start_date= str(start_date), end_data= str(end_date)  )
 
 
     #En el primer tab, show the first plot
