@@ -167,3 +167,67 @@ def get_engagement_list_v2(df, start_date , end_data):
   #Convert times to midnight
   engagement_list['EventDateTime'] = pd.to_datetime(engagement_list['EventDateTime'].dt.normalize())
   return engagement_list
+
+
+def get_rolling_values_version2(engagement_list, lookback):
+  """
+  engagement_list: DataFrame
+  lookback: int
+
+  return dataframe: With the days as index and the amount of engagements and unique users in the
+  range=(day - lookback : day). The dataset also has the mean, quantile25 and quantile 75 per day.
+  """
+  #Select two columns
+  prueba1 = engagement_list[['UserId','EventDateTime']]
+  #Group by UserId and EventDateTime, the result of size is set as Interacciones
+  df_grouped = prueba1.groupby(['UserId', 'EventDateTime']).size().reset_index(name='Interacciones')
+  #Return reshaped DataFrame organized by given index / column values.
+  df_pivoted = df_grouped.pivot(index='EventDateTime', columns='UserId', values='Interacciones')
+  #Fill na and sum values in a rolling window calculations
+  #window is lookback
+  df_rolling = df_pivoted.fillna(0).rolling(window=lookback).sum()
+  #Calculations
+  df_rolling['Mean'] = df_rolling[df_rolling !=0].mean(axis=1)
+  df_rolling['Quantile_25'] = df_rolling[df_rolling !=0].quantile(q=0.25, axis=1, interpolation='nearest')
+  df_rolling['Quantile_75'] = df_rolling[df_rolling !=0].quantile(q=0.75, axis=1, interpolation='nearest')
+  
+  #pivot to normal dataframe (without multi index in columns )
+  df_rolling = pd.DataFrame(df_rolling.to_records())
+  #columns with UserId
+  columnas_userId = df_rolling.columns[1: -3]
+  #userId to rows 
+  df_rolling = pd.melt(df_rolling, id_vars=['EventDateTime','Mean', 'Quantile_25', 'Quantile_75'], 
+                       value_vars=columnas_userId, 
+                       var_name ='UserId', value_name ='Num_interacciones')
+  return df_rolling
+
+def get_rolling_values_version3(engagement_list, lookback):
+  """
+  engagement_list: DataFrame
+  lookback: int
+
+  return dataframe: With the days as index and the amount of engagements and unique users in the
+  range=(day - lookback : day). The dataset also has the mean, quantile25 and quantile 75 per day.
+  """
+  #Select two columns
+  prueba1 = engagement_list[['UserId','EventDateTime']]
+  #Group by UserId and EventDateTime, the result of size is set as Interacciones
+  df_grouped = prueba1.groupby(['UserId', 'EventDateTime']).size().reset_index(name='Interacciones')
+  #Return reshaped DataFrame organized by given index / column values.
+  df_pivoted = df_grouped.pivot(index='EventDateTime', columns='UserId', values='Interacciones')
+  #Fill na and sum values in a rolling window calculations
+  #window is lookback
+  df_rolling = df_pivoted.fillna(0).rolling(window=lookback).sum()
+  #Calculations
+  df_rolling['Mean'] = df_rolling[df_rolling !=0].mean(axis=1)
+  df_rolling['Quantile_25'] = df_rolling[df_rolling !=0].quantile(q=0.25, axis=1, interpolation='nearest')
+  df_rolling['Quantile_75'] = df_rolling[df_rolling !=0].quantile(q=0.75, axis=1, interpolation='nearest')
+  
+  #pivot to normal dataframe (without multi index in columns )
+  df_rolling = pd.DataFrame(df_rolling.to_records())
+  #columns with UserId
+  columnas_userId = df_rolling.columns[1: -3]
+  #drop columns of UserId
+  df_rolling = df_rolling.loc[:, ~df_rolling.columns.isin(columnas_userId)]
+  
+  return df_rolling
