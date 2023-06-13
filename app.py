@@ -63,6 +63,14 @@ maritalstatus_list = df[df.UserMaritalStatus.notna()].UserMaritalStatus.unique()
 max_date = pd.to_datetime(df.EventDateTime.max())
 min_date = pd.to_datetime(df.EventDateTime.min())
 
+#Pagnacion del df 
+def paginate_dataframe(dataframe, page_size = 10, page_num = 1):
+    #cuantos resultados por pagina 
+    page_size = page_size
+
+    offset = page_size*(page_num-1)
+
+    return dataframe[offset:offset + page_size]
 
 app_ui = ui.page_fluid(
     ui.layout_sidebar(
@@ -84,18 +92,22 @@ app_ui = ui.page_fluid(
                     ui.output_plot("plot"),
                  ),
                 ui.nav("Engagements Metrics", 
-                   "t"
+                    ui.output_plot("plot_2"),
                 ),
-        )
-        ))
+            ),
+            ui.input_numeric("paginacion", "Paginacion", 1, step =1, min=1),
+            ui.output_text_verbatim("txt"),
+            ui.output_table("engagement_table"),
+            ui.download_button("download_data", "Download"),
+            )
+)
 )
 
 
 def server(input: Inputs, output: Outputs, session: Session):
-    @output
-    @render.plot(alt="A plot")
-    @reactive.event(input.go, ignore_none=False)
-    def plot():
+
+    @reactive.Calc
+    def calc_df():
         filters_text = []
         df_filter = df.copy()
         #filter df
@@ -122,6 +134,13 @@ def server(input: Inputs, output: Outputs, session: Session):
         #this data is used in both plots
         engagement_list = get_engagement_list_v2(df = df_filter, start_date= str(input.sd()), end_data= str(input.ed()))
         
+        return engagement_list
+
+    @output
+    @render.plot(alt="A plot")
+    @reactive.event(input.go, ignore_none=False)
+    def plot():
+        engagement_list = calc_df()
         #data for the plot
         global_metrics = get_global_daily(engagement_list)
         rolled = get_rolling(global_metrics,int(input.rq()), engagement_list)
@@ -130,6 +149,42 @@ def server(input: Inputs, output: Outputs, session: Session):
 
         fig = plt.plot(list(rolled.index), list(rolled.Engagements),  list(rolled.index), list(rolled.Unique_users))
         return fig
+
+
+    @output
+    @render.plot(alt="A plot 2")
+    @reactive.event(input.go, ignore_none=False)
+    def plot_2():
+        engagement_list = calc_df()
+        #data for the plot
+        rolling = get_rolling_values(engagement_list, int(input.rq()))
+        #plot 
+        fig_2 = plt.plot(list(rolling.index), list(rolling['Mean']))
+        return fig_2
+    
+    @output
+    @render.table
+    @reactive.event(input.paginacion, ignore_none=False)
+    def engagement_table():
+        engagement_list = calc_df()
+
+        engagement_list = paginate_dataframe(engagement_list, 10, input.paginacion())
+        return engagement_list[['UserId', 'EventDateTime', 'Language', 
+                                 'Age', 'UserState', 'Mobile_Device',
+                                'UserGender', 'UserMaritalStatus']]
+    @output
+    @render.text
+    @reactive.event(input.paginacion, ignore_none=False)
+    def txt():
+        engagement_list = calc_df()
+        texto = "Pagina " + str(input.paginacion()) + " de " + str(len(engagement_list.index))
+        print(texto)
+        return texto
+    
+    @session.download(filename=f'pan.csv')
+    def download_data():
+        engagement_list = calc_df()
+        yield engagement_list.to_csv(index=False)
 
 
 app = App(app_ui, server)
