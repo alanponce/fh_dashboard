@@ -5,7 +5,11 @@ from shiny import *
 from functions.functions_data import get_global_daily, get_rolling, get_rolling_values
 from functions.functions_graphics import plot_engagements_users, plot_metrics
 from functions.functions_data import get_engagement_list_v2
-import pandas as pd 
+import pandas as pd
+
+from shinywidgets import output_widget, render_widget
+import plotly.express as px
+import plotly.graph_objs as go
 #import the data
 def load_data():
     #read the data
@@ -89,10 +93,11 @@ app_ui = ui.page_fluid(
         ui.panel_main(
             ui.navset_tab(
                 ui.nav("Engagements users", 
-                    ui.output_plot("plot"),
+                    #ui.output_plot("plot"),
+                    output_widget("my_widget")
                  ),
                 ui.nav("Engagements Metrics", 
-                    ui.output_plot("plot_2"),
+                    output_widget("my_widget_2")
                 ),
             ),
             ui.input_numeric("paginacion", "Paginacion", 1, step =1, min=1),
@@ -137,31 +142,31 @@ def server(input: Inputs, output: Outputs, session: Session):
         return engagement_list
 
     @output
-    @render.plot(alt="A plot")
+    @render_widget
     @reactive.event(input.go, ignore_none=False)
-    def plot():
+    def my_widget():
         engagement_list = calc_df()
         #data for the plot
         global_metrics = get_global_daily(engagement_list)
         rolled = get_rolling(global_metrics,int(input.rq()), engagement_list)
-        #quita nan
-        #rolled = remove_nan(rolled)
-
-        fig = plt.plot(list(rolled.index), list(rolled.Engagements),  list(rolled.index), list(rolled.Unique_users))
+        #remove nan, because error "Out of range float values are not JSON compliant"
+        rolled = remove_nan(rolled)
+        fig = plot_engagements_users(rolled, str(input.rq()) +' days')
         return fig
-
-
+    
     @output
-    @render.plot(alt="A plot 2")
+    @render_widget
     @reactive.event(input.go, ignore_none=False)
-    def plot_2():
+    def my_widget_2():
         engagement_list = calc_df()
         #data for the plot
         rolling = get_rolling_values(engagement_list, int(input.rq()))
-        #plot 
-        fig_2 = plt.plot(list(rolling.index), list(rolling['Mean']))
-        return fig_2
-    
+        #remove nan
+        rolling = remove_nan(rolling)
+        fig2 = plot_metrics(rolling,  str(input.rq()) +' days')
+
+        return fig2
+
     @output
     @render.table
     @reactive.event(input.paginacion, ignore_none=False)
@@ -178,7 +183,6 @@ def server(input: Inputs, output: Outputs, session: Session):
     def txt():
         engagement_list = calc_df()
         texto = "Pagina " + str(input.paginacion()) + " de " + str(len(engagement_list.index))
-        print(texto)
         return texto
     
     @session.download(filename=f'pan.csv')
