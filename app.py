@@ -1,6 +1,3 @@
-import matplotlib.pyplot as plt
-import numpy as np
-
 from shiny import *
 from functions.functions_data import get_global_daily, get_rolling, get_rolling_values
 from functions.functions_graphics import plot_engagements_users, plot_metrics
