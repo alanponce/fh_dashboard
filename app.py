@@ -8,8 +8,6 @@ from functions.functions_data import get_engagement_list_v2
 import pandas as pd
 
 from shinywidgets import output_widget, render_widget
-import plotly.express as px
-import plotly.graph_objs as go
 #import the data
 def load_data():
     #read the data
@@ -89,17 +87,19 @@ app_ui = ui.page_fluid(
         ui.input_selectize("gender", "Gender", ["All",]  + list(gender_list) ),
         ui.input_selectize("maritalstatus", "Marital status", ["All",]  + list(maritalstatus_list) ),
         ui.input_action_button("go", "Submit", class_="btn-success"),
+        ui.input_action_button("clean", "Clean", class_="btn btn-primary"),width= 3
+
         ),
         ui.panel_main(
             ui.navset_tab(
                 ui.nav("Engagements users", 
-                    #ui.output_plot("plot"),
                     output_widget("my_widget")
                  ),
                 ui.nav("Engagements Metrics", 
                     output_widget("my_widget_2")
                 ),
             ),
+            ui.output_text_verbatim("filters"),
             ui.input_numeric("paginacion", "Paginacion", 1, step =1, min=1),
             ui.output_text_verbatim("txt"),
             ui.output_table("engagement_table"),
@@ -139,13 +139,13 @@ def server(input: Inputs, output: Outputs, session: Session):
         #this data is used in both plots
         engagement_list = get_engagement_list_v2(df = df_filter, start_date= str(input.sd()), end_data= str(input.ed()))
         
-        return engagement_list
+        return engagement_list, filters_text
 
     @output
     @render_widget
     @reactive.event(input.go, ignore_none=False)
     def my_widget():
-        engagement_list = calc_df()
+        engagement_list, filters_text = calc_df()
         #data for the plot
         global_metrics = get_global_daily(engagement_list)
         rolled = get_rolling(global_metrics,int(input.rq()), engagement_list)
@@ -158,20 +158,33 @@ def server(input: Inputs, output: Outputs, session: Session):
     @render_widget
     @reactive.event(input.go, ignore_none=False)
     def my_widget_2():
-        engagement_list = calc_df()
+        engagement_list, filters_text = calc_df()
         #data for the plot
-        rolling = get_rolling_values(engagement_list, int(input.rq()))
-        #remove nan
-        rolling = remove_nan(rolling)
+        rolling = get_rolling_values(engagement_list, int(input.rq()))[["Mean","Quantile_25", "Quantile_75" ]]
+        #remove nan, because error "Out of range float values are not JSON compliant"
+        rolling = rolling.fillna(0)
+
         fig2 = plot_metrics(rolling,  str(input.rq()) +' days')
 
         return fig2
-
+    
+    @output
+    @render.text
+    @reactive.event(input.go, ignore_none=False)
+    def filters():
+        titulo = "Filtros: \n"
+        engagement_list, filters_text = calc_df()
+        if len(filters_text) >= 1:
+            filters_text = "\n".join(filters_text)
+        else:
+            filters_text = "Ninguno"
+        return titulo + filters_text
+    
     @output
     @render.table
     @reactive.event(input.paginacion, ignore_none=False)
     def engagement_table():
-        engagement_list = calc_df()
+        engagement_list, filters_text = calc_df()
 
         engagement_list = paginate_dataframe(engagement_list, 10, input.paginacion())
         return engagement_list[['UserId', 'EventDateTime', 'Language', 
@@ -181,14 +194,32 @@ def server(input: Inputs, output: Outputs, session: Session):
     @render.text
     @reactive.event(input.paginacion, ignore_none=False)
     def txt():
-        engagement_list = calc_df()
+        engagement_list, filters_text = calc_df()
         texto = "Pagina " + str(input.paginacion()) + " de " + str(len(engagement_list.index))
         return texto
     
     @session.download(filename=f'pan.csv')
     def download_data():
-        engagement_list = calc_df()
+        engagement_list, filters_text = calc_df()
         yield engagement_list.to_csv(index=False)
+
+    
+
+    @reactive.Effect
+    @reactive.event(input.clean)
+    def _():
+        ui.update_date("sd", value = min_date)
+        ui.update_date("ed", value = max_date)
+        ui.update_numeric("rq", value = 7)
+        ui.update_selectize("age", selected="All")
+        ui.update_selectize("platform", selected="All")
+        ui.update_selectize("state", selected="All")
+        ui.update_selectize("gender", selected="All")
+        ui.update_selectize("maritalstatus", selected="All")
+
+
+
+
 
 
 app = App(app_ui, server)
