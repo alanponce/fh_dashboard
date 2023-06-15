@@ -1,4 +1,5 @@
 from shiny import *
+import math
 from functions.functions_data import get_global_daily, get_rolling, get_rolling_values
 from functions.functions_graphics import plot_engagements_users, plot_metrics
 from functions.functions_data import get_engagement_list_v2
@@ -75,39 +76,46 @@ app_ui = ui.page_fluid(
     ui.layout_sidebar(
 
       ui.panel_sidebar(
+        #inputs 
         ui.input_date("sd", "Start date", value = min_date),
         ui.input_date("ed", "End date", value = max_date),
-        ui.input_numeric("rq", "Rolling Quantity", 7, step=1),
+        ui.input_numeric("rq", "Rolling Quantity", 7, step=1, min=1),
         ui.input_selectize("age", "Age Bins", ("All", "18-29", "30-39","40-49","50-59","60-69","70-79")),
         ui.input_selectize("platform", "Platform",("All", "iOS", "Android")),
         ui.input_selectize("state", "State" , ["All",]  + list(diccionario_abreviaturas.keys())),
         ui.input_selectize("gender", "Gender", ["All",]  + list(gender_list) ),
         ui.input_selectize("maritalstatus", "Marital status", ["All",]  + list(maritalstatus_list) ),
-        ui.input_action_button("go", "Submit", class_="btn-success"),
-        ui.input_action_button("clean", "Clean", class_="btn btn-primary"),width= 3
 
+        #reset inputs 
+        ui.input_action_button("clean", "Clean", class_="btn btn-primary"),width= 3
         ),
         ui.panel_main(
             ui.navset_tab(
+                #first tab, engagement users 
                 ui.nav("Engagements users", 
                     output_widget("my_widget")
-                 ),
+                ),
+                #second tab, engagement metric 
                 ui.nav("Engagements Metrics", 
                     output_widget("my_widget_2")
-                ),
-            ),
+                )),
+            #show active filters
             ui.output_text_verbatim("filters"),
+            #pagination 
             ui.input_numeric("paginacion", "Paginacion", 1, step =1, min=1),
             ui.output_text_verbatim("txt"),
             ui.output_table("engagement_table"),
+            #download the data
             ui.download_button("download_data", "Download"),
-            )
-)
+            
+        )
+    )
 )
 
 
 def server(input: Inputs, output: Outputs, session: Session):
 
+    #reactive fuction 
     @reactive.Calc
     def calc_df():
         filters_text = []
@@ -132,15 +140,17 @@ def server(input: Inputs, output: Outputs, session: Session):
         if input.maritalstatus() != "All":
             df_filter = df_filter[df_filter['UserMaritalStatus'] == input.maritalstatus()]
             filters_text.append("Marital Status: " + input.maritalstatus() )
-
+            
         #this data is used in both plots
         engagement_list = get_engagement_list_v2(df = df_filter, start_date= str(input.sd()), end_data= str(input.ed()))
         
+        ui.update_numeric("paginacion", value = 1)
+
         return engagement_list, filters_text
 
+    #plot of engagement users
     @output
     @render_widget
-    @reactive.event(input.go, ignore_none=False)
     def my_widget():
         engagement_list, filters_text = calc_df()
         #data for the plot
@@ -151,9 +161,9 @@ def server(input: Inputs, output: Outputs, session: Session):
         fig = plot_engagements_users(rolled, str(input.rq()) +' days')
         return fig
     
+    #plot of engagement metrics
     @output
     @render_widget
-    @reactive.event(input.go, ignore_none=False)
     def my_widget_2():
         engagement_list, filters_text = calc_df()
         #data for the plot
@@ -165,9 +175,9 @@ def server(input: Inputs, output: Outputs, session: Session):
 
         return fig2
     
+    #show active filters
     @output
     @render.text
-    @reactive.event(input.go, ignore_none=False)
     def filters():
         titulo = "Filtros: \n"
         engagement_list, filters_text = calc_df()
@@ -177,9 +187,9 @@ def server(input: Inputs, output: Outputs, session: Session):
             filters_text = "Ninguno"
         return titulo + filters_text
     
+    #Show table
     @output
     @render.table
-    @reactive.event(input.paginacion, ignore_none=False)
     def engagement_table():
         engagement_list, filters_text = calc_df()
 
@@ -187,21 +197,22 @@ def server(input: Inputs, output: Outputs, session: Session):
         return engagement_list[['UserId', 'EventDateTime', 'Language', 
                                  'Age', 'UserState', 'Mobile_Device',
                                 'UserGender', 'UserMaritalStatus']]
+    
+    #show page 1 de n pages  
     @output
     @render.text
-    @reactive.event(input.paginacion, ignore_none=False)
     def txt():
         engagement_list, filters_text = calc_df()
-        texto = "Pagina " + str(input.paginacion()) + " de " + str(len(engagement_list.index))
+        texto = "Pagina " + str(input.paginacion()) + " de " + str(math.ceil(len(engagement_list.index) / 10))
         return texto
     
-    @session.download(filename=f'pan.csv')
+    #download button 
+    @session.download(filename=f'dataframe.csv')
     def download_data():
         engagement_list, filters_text = calc_df()
         yield engagement_list.to_csv(index=False)
 
-    
-
+    #reset inputs when button clean is clicked 
     @reactive.Effect
     @reactive.event(input.clean)
     def _():
@@ -213,8 +224,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         ui.update_selectize("state", selected="All")
         ui.update_selectize("gender", selected="All")
         ui.update_selectize("maritalstatus", selected="All")
-
-
+        ui.update_numeric("paginacion", value = 1)
 
 
 
