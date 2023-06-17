@@ -1,0 +1,13 @@
+#crear la imagen 
+#esto se corre en el folder de fh_dashboard
+docker build -t prueba .
+#correr 
+docker run -d -p 80:80 prueba
+
+ERROR: Could not install packages due to an OSError: [Errno 13] Permission denied
+
+Failure starting docker container. "failed to create shim task: OCI runtime create failed: runc create failed"
+
+corre pero aparece "La conexión ha sido reiniciada"
+
+wiii

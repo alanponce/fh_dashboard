@@ -227,6 +227,5 @@ def server(input: Inputs, output: Outputs, session: Session):
         ui.update_numeric("paginacion", value = 1)
 
 
-
-
 app = App(app_ui, server)
+
